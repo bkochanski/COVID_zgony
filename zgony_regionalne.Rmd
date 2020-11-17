@@ -1,0 +1,1017 @@
+---
+title: "Zgony w Polsce na poziomie regionów"
+author: "Kamil Pastor"
+date: "16 listopada 2020"
+output: 
+ html_document:
+  toc: true
+  toc_float: 
+    collapsed: true
+  
+---
+
+<style type="text/css">
+
+h1 { /* Header 1 */
+  color: darkblue;
+}
+h2 { /* Header 2 */
+  color: darkblue;
+}
+h3 { /* Header 3 */
+  color: maroon;
+}
+
+</style>
+
+```{r setup, include=FALSE}
+
+options(java.parameters = "-Xmx1024m")
+library(XLConnect)
+library(tidyverse)
+library(rsdmx)
+library(lubridate)
+library(shadowtext)
+library(httr)
+library(jsonlite)
+library(data.table)
+library(ISOweek)
+library(ggplot2)
+library(forecast)
+library(scales)
+library(prettydoc)
+
+source("functions_regiony.R", encoding = "UTF-8")
+dt_NUTS <- readRDS("data/dt_NUTS.rds")
+dt_NUTS_wojewodztwa <- readRDS("data/dt_NUTS_wojewodztwa.rds")
+
+
+```
+
+# Wprowadzenie
+Na tej stronie będę regularnie aktualizował dane i analizy dotyczące śmiertelności w Polsce na poziomie regionów, czyli w województwach i podregionach. Podregiony są to zgrupowania statystyczne kilku powiatów. Niestety dane tygodniowe o zgonach nie są dostępne na poziomie powiatów i gmin.
+
+Dane pochodzą z [Eurostatu](https://appsso.eurostat.ec.europa.eu/nui/show.do?dataset= demo_r_mwk3_t&lang=en) i [GUSu](https://stat.gov.pl/obszary-tematyczne/ludnosc/ludnosc/zgony-wedlug-tygodni,39,2.html). Dekompozycji sezonowej dokonałem za pomocą [procedury STL](https://otexts.com/fpp2/stl.html). Dla każdego kraju policzyłem w uproszczony sposób liczbę zgonów nadwyżkowych. Porównałem rzeczywistą liczbę zgonów z hipotetyczną liczbą zgonów, która powinna mieć miejsce gdyby znaczenie miał tylko trend długoterminowy oraz wpływ sezonowości danego tygodnia. Zainspirowałem się przy tym [analizą Mateusza Dadeja](https://twitter.com/mateusz_dadej/status/1325032311574974464).
+
+**Uwaga:** Dane spływają z różnymi opóźnieniami. Obserwacje za ostatnie tygodnie mogą być poddawane rewizjom, np. ze względu na fakt, że uwzględniają tylko część zgonów, które miały miejsce. Bardzo niska śmiertelność występująca w niektórych regionach na końcu szeregów jest więc najprawdopodobniej przykładem takich "niepełnych, wstępnych obserwacji" i w przyszłości będzie rewidowana w górę. 
+
+Przygotowałem również analizę zgonów ogółem w ujęciu tygodniowym na poziomie poszczególnych krajów. Dostępna jest ona [pod tym linkiem](https://pastor-kamil.github.io/COVID_zgony/zgony-COVID.html)
+
+**Autor: Kamil Pastor. Po więcej grafik, wykresów i wizualizacji zapraszam do śledzenia mojego [konta na Twitterze](https://twitter.com/pastor_kamil).**
+
+
+## Zgony w województwach - wykres
+Dane tygodniowe dla wszystkich województw. Ostatnie dane dotyczą tygodnia nr `r ostatnia_data(wybrany_kraj = "Województwo Dolnośląskie", dane = dt_NUTS)[[1]]` (kończączego się w niedzielę `r ostatnia_data(wybrany_kraj = "Województwo Dolnośląskie", dane = dt_NUTS)[[2]]`)
+
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold"}
+przyg_wyk_tygodniowego_wojewodztwa(dt_NUTS_wojewodztwa)
+
+```
+
+## Mapa podregionów
+Poniższa mapa może być pomocna przy lekturze tej strony.
+![Mapa podregionów.](C:/Users/Kamil Pastor/Desktop/R - zgony/data/polska_nuts3-2016.png)
+
+
+## Województwo Dolnośląskie
+Dane tygodniowe dla Województwa Dolnośląskiego. Ostatnie dane dotyczą tygodnia nr `r ostatnia_data(wybrany_kraj = "Województwo Dolnośląskie", dane = dt_NUTS)[[1]]` (kończączego się w niedzielę `r ostatnia_data(wybrany_kraj = "Województwo Dolnośląskie", dane = dt_NUTS)[[2]]`)
+
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Województwo Dolnośląskie"
+  data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt_NUTS)
+  przyg_wyk_tygodniowego(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+  przyg_wyk_nadmiarowych_zgonow(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+
+
+```
+
+### Podregion Miasto Wrocław
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Miasto Wrocław"
+  data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt_NUTS)
+  przyg_wyk_tygodniowego_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+  przyg_wyk_nadmiarowych_zgonow_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+
+
+```
+
+### Podregion Jeleniogórski
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Jeleniogórski"
+  data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt_NUTS)
+  przyg_wyk_tygodniowego_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+  przyg_wyk_nadmiarowych_zgonow_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+
+
+```
+
+### Podregion Legnicko-Głogowski
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Legnicko-Głogowski"
+  data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt_NUTS)
+  przyg_wyk_tygodniowego_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+  przyg_wyk_nadmiarowych_zgonow_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+
+
+```
+
+### Podregion Wałbrzyski
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Wałbrzyski"
+  data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt_NUTS)
+  przyg_wyk_tygodniowego_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+  przyg_wyk_nadmiarowych_zgonow_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+
+
+```
+
+### Podregion Wrocławski
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Wrocławski"
+  data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt_NUTS)
+  przyg_wyk_tygodniowego_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+  przyg_wyk_nadmiarowych_zgonow_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+
+
+```
+
+## Województwo Kujawsko-Pomorskie
+Dane tygodniowe dla Województwa Kujawsko-Pomorskiego. Ostatnie dane dotyczą tygodnia nr `r ostatnia_data(wybrany_kraj = "Województwo Kujawsko-Pomorskie", dane = dt_NUTS)[[1]]` (kończączego się w niedzielę `r ostatnia_data(wybrany_kraj = "Województwo Kujawsko-Pomorskie", dane = dt_NUTS)[[2]]`)
+
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Województwo Kujawsko-Pomorskie"
+  data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt_NUTS)
+  przyg_wyk_tygodniowego(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+  przyg_wyk_nadmiarowych_zgonow(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+
+
+```
+
+### Podregion Bydgosko-Toruński
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Bydgosko-Toruński"
+  data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt_NUTS)
+  przyg_wyk_tygodniowego_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+  przyg_wyk_nadmiarowych_zgonow_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+
+
+```
+
+### Podregion Grudziądzki
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Grudziądzki"
+  data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt_NUTS)
+  przyg_wyk_tygodniowego_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+  przyg_wyk_nadmiarowych_zgonow_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+
+
+```
+
+### Podregion Inowrocławski
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Inowrocławski"
+  data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt_NUTS)
+  przyg_wyk_tygodniowego_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+  przyg_wyk_nadmiarowych_zgonow_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+
+
+```
+
+### Podregion Świecki
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Świecki"
+  data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt_NUTS)
+  przyg_wyk_tygodniowego_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+  przyg_wyk_nadmiarowych_zgonow_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+
+
+```
+
+### Podregion Włocławski
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Włocławski"
+  data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt_NUTS)
+  przyg_wyk_tygodniowego_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+  przyg_wyk_nadmiarowych_zgonow_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+
+
+```
+
+
+
+## Województwo Lubelskie
+Dane tygodniowe dla Województwa Lubelskie. Ostatnie dane dotyczą tygodnia nr `r ostatnia_data(wybrany_kraj = "Województwo Lubelskie", dane = dt_NUTS)[[1]]` (kończączego się w niedzielę `r ostatnia_data(wybrany_kraj = "Województwo Lubelskie", dane = dt_NUTS)[[2]]`)
+
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Województwo Lubelskie"
+  data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt_NUTS)
+  przyg_wyk_tygodniowego(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+  przyg_wyk_nadmiarowych_zgonow(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+
+
+```
+
+### Podregion Bialski
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Bialski"
+  data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt_NUTS)
+  przyg_wyk_tygodniowego_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+  przyg_wyk_nadmiarowych_zgonow_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+
+
+```
+
+### Podregion Chełmsko-zamojski
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Chełmsko-zamojski"
+  data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt_NUTS)
+  przyg_wyk_tygodniowego_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+  przyg_wyk_nadmiarowych_zgonow_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+
+
+```
+
+### Podregion Lubelski
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Lubelski"
+  data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt_NUTS)
+  przyg_wyk_tygodniowego_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+  przyg_wyk_nadmiarowych_zgonow_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+
+
+```
+
+### Podregion Puławski
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Puławski"
+  data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt_NUTS)
+  przyg_wyk_tygodniowego_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+  przyg_wyk_nadmiarowych_zgonow_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+
+
+```
+
+## Województwo Lubuskie
+Dane tygodniowe dla Województwa Lubuskiego. Ostatnie dane dotyczą tygodnia nr `r ostatnia_data(wybrany_kraj = "Województwo Lubuskie", dane = dt_NUTS)[[1]]` (kończączego się w niedzielę `r ostatnia_data(wybrany_kraj = "Województwo Lubuskie", dane = dt_NUTS)[[2]]`)
+
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Województwo Lubuskie"
+  data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt_NUTS)
+  przyg_wyk_tygodniowego(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+  przyg_wyk_nadmiarowych_zgonow(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+
+
+```
+
+### Podregion Gorzowski
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Gorzowski"
+  data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt_NUTS)
+  przyg_wyk_tygodniowego_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+  przyg_wyk_nadmiarowych_zgonow_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+
+
+```
+
+### Podregion Zielonogórski
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Zielonogórski"
+  data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt_NUTS)
+  przyg_wyk_tygodniowego_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+  przyg_wyk_nadmiarowych_zgonow_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+
+
+```
+
+
+## Województwo Łódzkie
+Dane tygodniowe dla Województwa Łódzkiego. Ostatnie dane dotyczą tygodnia nr `r ostatnia_data(wybrany_kraj = "Województwo Łódzkie", dane = dt_NUTS)[[1]]` (kończączego się w niedzielę `r ostatnia_data(wybrany_kraj = "Województwo Łódzkie", dane = dt_NUTS)[[2]]`)
+
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Województwo Łódzkie"
+  data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt_NUTS)
+  przyg_wyk_tygodniowego(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+  przyg_wyk_nadmiarowych_zgonow(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+
+
+```
+
+### Podregion Miasto Łódź
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Miasto Łódź"
+  data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt_NUTS)
+  przyg_wyk_tygodniowego_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+  przyg_wyk_nadmiarowych_zgonow_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+
+
+```
+
+### Podregion Łódzki
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Łódzki"
+  data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt_NUTS)
+  przyg_wyk_tygodniowego_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+  przyg_wyk_nadmiarowych_zgonow_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+
+
+```
+
+### Podregion Piotrkowski
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Piotrkowski"
+  data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt_NUTS)
+  przyg_wyk_tygodniowego_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+  przyg_wyk_nadmiarowych_zgonow_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+
+
+```
+
+### Podregion Sieradzki
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Sieradzki"
+  data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt_NUTS)
+  przyg_wyk_tygodniowego_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+  przyg_wyk_nadmiarowych_zgonow_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+
+
+```
+
+### Podregion Skierniewicki
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Skierniewicki"
+  data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt_NUTS)
+  przyg_wyk_tygodniowego_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+  przyg_wyk_nadmiarowych_zgonow_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+
+
+```
+
+## Województwo Małopolskie
+Dane tygodniowe dla Województwa Małopolskiego. Ostatnie dane dotyczą tygodnia nr `r ostatnia_data(wybrany_kraj = "Województwo Małopolskie", dane = dt_NUTS)[[1]]` (kończączego się w niedzielę `r ostatnia_data(wybrany_kraj = "Województwo Małopolskie", dane = dt_NUTS)[[2]]`)
+
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Województwo Małopolskie"
+  data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt_NUTS)
+  przyg_wyk_tygodniowego(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+  przyg_wyk_nadmiarowych_zgonow(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+
+
+```
+
+### Podregion Miasto Kraków
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Miasto Kraków"
+  data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt_NUTS)
+  przyg_wyk_tygodniowego_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+  przyg_wyk_nadmiarowych_zgonow_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+
+
+```
+
+### Podregion Krakowski
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Krakowski"
+  data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt_NUTS)
+  przyg_wyk_tygodniowego_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+  przyg_wyk_nadmiarowych_zgonow_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+
+
+```
+
+### Podregion Tarnowski
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Tarnowski"
+  data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt_NUTS)
+  przyg_wyk_tygodniowego_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+  przyg_wyk_nadmiarowych_zgonow_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+
+
+```
+
+### Podregion Nowosądecki
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Nowosądecki"
+  data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt_NUTS)
+  przyg_wyk_tygodniowego_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+  przyg_wyk_nadmiarowych_zgonow_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+
+
+```
+
+### Podregion Nowotarski
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Nowotarski"
+  data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt_NUTS)
+  przyg_wyk_tygodniowego_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+  przyg_wyk_nadmiarowych_zgonow_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+
+
+```
+
+### Podregion Oświęcimski
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Oświecimski"
+  data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt_NUTS)
+  przyg_wyk_tygodniowego_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+  przyg_wyk_nadmiarowych_zgonow_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+
+
+```
+
+## Województwo Mazowieckie
+
+### Mazowieckie regionalne
+Dane tygodniowe dla regionu mazowieckiego regionalnego (poza Warszawą). Ostatnie dane dotyczą tygodnia nr `r ostatnia_data(wybrany_kraj = "Mazowiecki regionalny", dane = dt_NUTS)[[1]]` (kończączego się w niedzielę `r ostatnia_data(wybrany_kraj = "Mazowiecki regionalny", dane = dt_NUTS)[[2]]`)
+
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Mazowiecki regionalny"
+  data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt_NUTS)
+  przyg_wyk_tygodniowego(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+  przyg_wyk_nadmiarowych_zgonow(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+
+
+```
+
+#### Podregion Radomski
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Radomski"
+  data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt_NUTS)
+  przyg_wyk_tygodniowego_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+  przyg_wyk_nadmiarowych_zgonow_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+
+
+```
+
+#### Podregion Ciechanowski
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Ciechanowski"
+  data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt_NUTS)
+  przyg_wyk_tygodniowego_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+  przyg_wyk_nadmiarowych_zgonow_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+
+
+```
+
+#### Podregion Płocki
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Płocki"
+  data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt_NUTS)
+  przyg_wyk_tygodniowego_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+  przyg_wyk_nadmiarowych_zgonow_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+
+
+```
+
+#### Podregion Ostrołęcki
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Ostrołęcki"
+  data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt_NUTS)
+  przyg_wyk_tygodniowego_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+  przyg_wyk_nadmiarowych_zgonow_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+
+
+```
+
+#### Podregion Siedlecki
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Siedlecki"
+  data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt_NUTS)
+  przyg_wyk_tygodniowego_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+  przyg_wyk_nadmiarowych_zgonow_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+
+
+```
+
+#### Podregion Żyrardowski
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Żyrardowski"
+  data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt_NUTS)
+  przyg_wyk_tygodniowego_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+  przyg_wyk_nadmiarowych_zgonow_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+
+
+```
+
+### Warszawski stołeczny
+Dane tygodniowe dla regionu warszawskiego stołecznego. Ostatnie dane dotyczą tygodnia nr `r ostatnia_data(wybrany_kraj = "Warszawski stołeczny", dane = dt_NUTS)[[1]]` (kończączego się w niedzielę `r ostatnia_data(wybrany_kraj = "Warszawski stołeczny", dane = dt_NUTS)[[2]]`)
+
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Warszawski stołeczny"
+  data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt_NUTS)
+  przyg_wyk_tygodniowego(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+  przyg_wyk_nadmiarowych_zgonow(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+
+
+```
+
+
+#### Podregion Miasto Warszawa
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Miasto Warszawa"
+  data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt_NUTS)
+  przyg_wyk_tygodniowego_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+  przyg_wyk_nadmiarowych_zgonow_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+
+
+```
+
+#### Podregion Warszawski wschodni
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Warszawski wschodni"
+  data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt_NUTS)
+  przyg_wyk_tygodniowego_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+  przyg_wyk_nadmiarowych_zgonow_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+
+
+```
+
+#### Podregion Warszawski zachodni
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Warszawski zachodni"
+  data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt_NUTS)
+  przyg_wyk_tygodniowego_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+  przyg_wyk_nadmiarowych_zgonow_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+
+
+```
+
+## Województwo Opolskie
+Dane tygodniowe dla Województwa Opolskiego. Ostatnie dane dotyczą tygodnia nr `r ostatnia_data(wybrany_kraj = "Województwo Opolskie", dane = dt_NUTS)[[1]]` (kończączego się w niedzielę `r ostatnia_data(wybrany_kraj = "Województwo Opolskie", dane = dt_NUTS)[[2]]`)
+
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Województwo Opolskie"
+  data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt_NUTS)
+  przyg_wyk_tygodniowego(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+  przyg_wyk_nadmiarowych_zgonow(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+
+
+```
+
+### Podregion Nyski
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Nyski"
+  data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt_NUTS)
+  przyg_wyk_tygodniowego_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+  przyg_wyk_nadmiarowych_zgonow_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+
+
+```
+
+### Podregion Opolski
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Opolski"
+  data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt_NUTS)
+  przyg_wyk_tygodniowego_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+  przyg_wyk_nadmiarowych_zgonow_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+
+
+```
+
+## Województwo Podkarpackie
+Dane tygodniowe dla Województwa Podkarpackiego. Ostatnie dane dotyczą tygodnia nr `r ostatnia_data(wybrany_kraj = "Województwo Podkarpackie", dane = dt_NUTS)[[1]]` (kończączego się w niedzielę `r ostatnia_data(wybrany_kraj = "Województwo Podkarpackie", dane = dt_NUTS)[[2]]`)
+
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Województwo Podkarpackie"
+  data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt_NUTS)
+  przyg_wyk_tygodniowego(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+  przyg_wyk_nadmiarowych_zgonow(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+
+
+```
+
+### Podregion Krośnieński
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Krośnieński"
+  data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt_NUTS)
+  przyg_wyk_tygodniowego_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+  przyg_wyk_nadmiarowych_zgonow_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+
+
+```
+
+### Podregion Przemyski
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Przemyski"
+  data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt_NUTS)
+  przyg_wyk_tygodniowego_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+  przyg_wyk_nadmiarowych_zgonow_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+
+
+```
+
+### Podregion Rzeszowski
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Rzeszowski"
+  data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt_NUTS)
+  przyg_wyk_tygodniowego_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+  przyg_wyk_nadmiarowych_zgonow_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+
+
+```
+
+### Podregion Tarnobrzeski
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Tarnobrzeski"
+  data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt_NUTS)
+  przyg_wyk_tygodniowego_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+  przyg_wyk_nadmiarowych_zgonow_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+
+
+```
+
+
+## Województwo Podlaskie
+Dane tygodniowe dla Województwa Podlaskiego. Ostatnie dane dotyczą tygodnia nr `r ostatnia_data(wybrany_kraj = "Województwo Podlaskie", dane = dt_NUTS)[[1]]` (kończączego się w niedzielę `r ostatnia_data(wybrany_kraj = "Województwo Podlaskie", dane = dt_NUTS)[[2]]`)
+
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Województwo Podlaskie"
+  data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt_NUTS)
+  przyg_wyk_tygodniowego(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+  przyg_wyk_nadmiarowych_zgonow(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+
+
+```
+
+### Podregion Białostocki
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Białostocki"
+  data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt_NUTS)
+  przyg_wyk_tygodniowego_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+  przyg_wyk_nadmiarowych_zgonow_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+
+
+```
+
+### Podregion Łomżyński
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Łomżyński"
+  data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt_NUTS)
+  przyg_wyk_tygodniowego_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+  przyg_wyk_nadmiarowych_zgonow_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+
+
+```
+
+### Podregion Suwalski
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Suwalski"
+  data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt_NUTS)
+  przyg_wyk_tygodniowego_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+  przyg_wyk_nadmiarowych_zgonow_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+
+
+```
+
+## Województwo Pomorskie
+Dane tygodniowe dla Województwa Pomorskiego. Ostatnie dane dotyczą tygodnia nr `r ostatnia_data(wybrany_kraj = "Województwo Pomorskie", dane = dt_NUTS)[[1]]` (kończączego się w niedzielę `r ostatnia_data(wybrany_kraj = "Województwo Pomorskie", dane = dt_NUTS)[[2]]`)
+
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Województwo Pomorskie"
+  data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt_NUTS)
+  przyg_wyk_tygodniowego(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+  przyg_wyk_nadmiarowych_zgonow(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+
+
+```
+
+### Podregion Trójmiejski
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Trójmiejski"
+  data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt_NUTS)
+  przyg_wyk_tygodniowego_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+  przyg_wyk_nadmiarowych_zgonow_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+
+
+```
+
+### Podregion Gdański
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Gdański"
+  data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt_NUTS)
+  przyg_wyk_tygodniowego_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+  przyg_wyk_nadmiarowych_zgonow_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+
+
+```
+
+### Podregion Słupski
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Słupski"
+  data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt_NUTS)
+  przyg_wyk_tygodniowego_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+  przyg_wyk_nadmiarowych_zgonow_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+
+
+```
+
+### Podregion Chojnicki
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Chojnicki"
+  data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt_NUTS)
+  przyg_wyk_tygodniowego_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+  przyg_wyk_nadmiarowych_zgonow_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+
+
+```
+
+### Podregion Starogardzki
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Starogardzki"
+  data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt_NUTS)
+  przyg_wyk_tygodniowego_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+  przyg_wyk_nadmiarowych_zgonow_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+
+
+```
+
+## Województwo Śląskie
+Dane tygodniowe dla Województwa Śląskiego. Ostatnie dane dotyczą tygodnia nr `r ostatnia_data(wybrany_kraj = "Województwo Śląskie", dane = dt_NUTS)[[1]]` (kończączego się w niedzielę `r ostatnia_data(wybrany_kraj = "Województwo Śląskie", dane = dt_NUTS)[[2]]`)
+
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Województwo Śląskie"
+  data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt_NUTS)
+  przyg_wyk_tygodniowego(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+  przyg_wyk_nadmiarowych_zgonow(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+
+
+```
+
+### Podregion Częstochowski
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Częstochowski"
+  data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt_NUTS)
+  przyg_wyk_tygodniowego_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+  przyg_wyk_nadmiarowych_zgonow_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+
+
+```
+
+### Podregion Bielski
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Bielski"
+  data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt_NUTS)
+  przyg_wyk_tygodniowego_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+  przyg_wyk_nadmiarowych_zgonow_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+
+
+```
+
+### Podregion Rybnicki
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Rybnicki"
+  data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt_NUTS)
+  przyg_wyk_tygodniowego_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+  przyg_wyk_nadmiarowych_zgonow_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+
+
+```
+
+### Podregion Bytomski
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Bytomski"
+  data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt_NUTS)
+  przyg_wyk_tygodniowego_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+  przyg_wyk_nadmiarowych_zgonow_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+
+
+```
+
+### Podregion Gliwicki
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Gliwicki"
+  data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt_NUTS)
+  przyg_wyk_tygodniowego_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+  przyg_wyk_nadmiarowych_zgonow_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+
+
+```
+
+### Podregion Katowicki
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Katowicki"
+  data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt_NUTS)
+  przyg_wyk_tygodniowego_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+  przyg_wyk_nadmiarowych_zgonow_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+
+
+```
+
+### Podregion Sosnowiecki
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Sosnowiecki"
+  data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt_NUTS)
+  przyg_wyk_tygodniowego_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+  przyg_wyk_nadmiarowych_zgonow_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+
+
+```
+
+### Podregion Tyski
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Tyski"
+  data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt_NUTS)
+  przyg_wyk_tygodniowego_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+  przyg_wyk_nadmiarowych_zgonow_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+
+
+```
+
+## Województwo Świętokrzyskie
+Dane tygodniowe dla Województwa Świętokrzyskiego. Ostatnie dane dotyczą tygodnia nr `r ostatnia_data(wybrany_kraj = "Województwo Świętokrzyskie", dane = dt_NUTS)[[1]]` (kończączego się w niedzielę `r ostatnia_data(wybrany_kraj = "Województwo Świętokrzyskie", dane = dt_NUTS)[[2]]`)
+
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Województwo Świętokrzyskie"
+  data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt_NUTS)
+  przyg_wyk_tygodniowego(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+  przyg_wyk_nadmiarowych_zgonow(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+
+
+```
+
+### Podregion Kielecki
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Kielecki"
+  data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt_NUTS)
+  przyg_wyk_tygodniowego_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+  przyg_wyk_nadmiarowych_zgonow_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+
+
+```
+
+### Podregion Sandomiersko-jędrzejowski
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Sandomiersko-jędrzejowski"
+  data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt_NUTS)
+  przyg_wyk_tygodniowego_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+  przyg_wyk_nadmiarowych_zgonow_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+
+
+```
+
+## Województwo Warmińsko-Mazurskie
+Dane tygodniowe dla Województwa Warmińsko-Mazurskiego. Ostatnie dane dotyczą tygodnia nr `r ostatnia_data(wybrany_kraj = "Województwo Warminsko-Mazurskie", dane = dt_NUTS)[[1]]` (kończączego się w niedzielę `r ostatnia_data(wybrany_kraj = "Województwo Warminsko-Mazurskie", dane = dt_NUTS)[[2]]`)
+
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Województwo Warminsko-Mazurskie"
+  data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt_NUTS)
+  przyg_wyk_tygodniowego(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+  przyg_wyk_nadmiarowych_zgonow(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+
+
+```
+
+### Podregion Elbląski
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Elbląski"
+  data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt_NUTS)
+  przyg_wyk_tygodniowego_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+  przyg_wyk_nadmiarowych_zgonow_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+
+
+```
+
+### Podregion Olsztyński
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Olsztyński"
+  data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt_NUTS)
+  przyg_wyk_tygodniowego_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+  przyg_wyk_nadmiarowych_zgonow_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+
+
+```
+
+### Podregion Ełcki
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Ełcki"
+  data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt_NUTS)
+  przyg_wyk_tygodniowego_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+  przyg_wyk_nadmiarowych_zgonow_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+
+
+```
+
+
+## Województwo Wielkopolskie
+Dane tygodniowe dla Województwa Wielkopolskiego. Ostatnie dane dotyczą tygodnia nr `r ostatnia_data(wybrany_kraj = "Województwo Wielkopolskie", dane = dt_NUTS)[[1]]` (kończączego się w niedzielę `r ostatnia_data(wybrany_kraj = "Województwo Wielkopolskie", dane = dt_NUTS)[[2]]`)
+
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Województwo Wielkopolskie"
+  data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt_NUTS)
+  przyg_wyk_tygodniowego(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+  przyg_wyk_nadmiarowych_zgonow(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+
+
+```
+
+### Podregion Pilski
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Pilski"
+  data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt_NUTS)
+  przyg_wyk_tygodniowego_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+  przyg_wyk_nadmiarowych_zgonow_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+
+
+```
+
+### Podregion Koniński
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Koniński"
+  data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt_NUTS)
+  przyg_wyk_tygodniowego_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+  przyg_wyk_nadmiarowych_zgonow_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+
+
+```
+
+### Podregion Miasto Poznań
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Miasto Poznań"
+  data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt_NUTS)
+  przyg_wyk_tygodniowego_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+  przyg_wyk_nadmiarowych_zgonow_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+
+
+```
+
+### Podregion Kaliski
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Kaliski"
+  data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt_NUTS)
+  przyg_wyk_tygodniowego_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+  przyg_wyk_nadmiarowych_zgonow_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+
+
+```
+
+### Podregion Leszczyński
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Leszczyński"
+  data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt_NUTS)
+  przyg_wyk_tygodniowego_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+  przyg_wyk_nadmiarowych_zgonow_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+
+
+```
+
+### Podregion Poznański
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Poznański"
+  data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt_NUTS)
+  przyg_wyk_tygodniowego_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+  przyg_wyk_nadmiarowych_zgonow_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+
+
+```
+
+## Województwo Zachodniopomorskie
+Dane tygodniowe dla Województwa Zachodniopomorskiego. Ostatnie dane dotyczą tygodnia nr `r ostatnia_data(wybrany_kraj = "Województwo Zachodniopomorskie", dane = dt_NUTS)[[1]]` (kończączego się w niedzielę `r ostatnia_data(wybrany_kraj = "Województwo Zachodniopomorskie", dane = dt_NUTS)[[2]]`)
+
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Województwo Zachodniopomorskie"
+  data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt_NUTS)
+  przyg_wyk_tygodniowego(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+  przyg_wyk_nadmiarowych_zgonow(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+
+
+```
+
+### Podregion Miasto Szczecin
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Miasto Szczecin"
+  data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt_NUTS)
+  przyg_wyk_tygodniowego_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+  przyg_wyk_nadmiarowych_zgonow_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+
+
+```
+
+### Podregion Koszaliński
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Koszaliński"
+  data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt_NUTS)
+  przyg_wyk_tygodniowego_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+  przyg_wyk_nadmiarowych_zgonow_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+
+
+```
+
+### Podregion Szczecinecko-pyrzycki
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Szczecinecko-pyrzycki"
+  data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt_NUTS)
+  przyg_wyk_tygodniowego_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+  przyg_wyk_nadmiarowych_zgonow_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+
+
+```
+
+### Podregion Szczeciński
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Szczeciński"
+  data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt_NUTS)
+  przyg_wyk_tygodniowego_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+  przyg_wyk_nadmiarowych_zgonow_regiony(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+
+
+```
+

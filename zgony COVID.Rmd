@@ -1,7 +1,7 @@
 ---
-title: "Zgony COVID"
+title: "Zgony w ujęciu tygodniowym"
 author: "Kamil Pastor"
-date: "8 listopada 2020"
+date: "16 listopada 2020"
 output: 
  html_document:
   toc: true
@@ -14,6 +14,10 @@ output:
 Na tej stronie będę regularnie aktualizował dane i analizy dotyczące śmiertelności w wybranych krajach Europy w ujęciu tygodniowym. 
 
 Dane pochodzą z [Eurostatu](https://appsso.eurostat.ec.europa.eu/nui/show.do?dataset=demo_r_mwk_ts&lang=en), a dla Polski również ze źródeł medialnych (TVN24, money.pl, BiqData). Dekompozycji sezonowej dokonałem za pomocą [procedury STL](https://otexts.com/fpp2/stl.html). Dla każdego kraju policzyłem w uproszczony sposób liczbę zgonów nadwyżkowych. Porównałem rzeczywistą liczbę zgonów z hipotetyczną liczbą zgonów, która powinna mieć miejsce gdyby znaczenie miał tylko trend długoterminowy oraz wpływ sezonowości danego tygodnia. Zainspirowałem się przy tym [analizą Mateusza Dadeja](https://twitter.com/mateusz_dadej/status/1325032311574974464).
+
+**Uwaga:** Dane spływają z różnymi opóźnieniami. Obserwacje za ostatnie tygodnie mogą być poddawane rewizjom, np. ze względu na fakt, że uwzględniają tylko część zgonów, które miały miejsce. Bardzo niska śmiertelność występująca w niektórych krajach na końcu szeregów jest więc najprawdopodobniej przykładem takich "niepełnych, wstępnych obserwacji" i w przyszłości będzie rewidowana w górę. 
+
+**Uwaga 2:** Dane dla Polski za ostatnie tygodnie pochodzą z doniesień prasowych opracowywanych na podstawie danych Ministerstwa Cyfryzacji (MC). Dane Ministerstwa nieznacznie różnią się od danych z Eurostatu. MC raportuje wszystkie zgony na terenie kraju, a Eurostat tylko zgony mieszkańców Polski.
 
 **Autor: Kamil Pastor. Po więcej grafik, wykresów i wizualizacji zapraszam do śledzenia mojego [konta na Twitterze](https://twitter.com/pastor_kamil).**
 
