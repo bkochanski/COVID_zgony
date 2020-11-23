@@ -1,0 +1,551 @@
+---
+title: "Zgony w Europie w ujęciu tygodniowym"
+author: "Kamil Pastor"
+date: "23 listopada 2020"
+output: 
+ html_document:
+  toc: true
+  toc_float: 
+    collapsed: false
+  
+---
+
+```{r setup, include=FALSE}
+
+options(java.parameters = "-Xmx1024m")
+library(XLConnect)
+library(tidyverse)
+library(rsdmx)
+library(lubridate)
+library(shadowtext)
+library(httr)
+library(jsonlite)
+library(data.table)
+library(ISOweek)
+library(ggplot2)
+library(forecast)
+library(scales)
+
+source("functions.R", encoding = "UTF-8")
+dt1 <- readRDS("data/dt1.rds")
+
+
+```
+
+# Wprowadzenie
+Na tej stronie będę regularnie aktualizował dane i analizy dotyczące umieralności w wybranych krajach Europy w ujęciu tygodniowym. 
+
+Dane pochodzą z [Eurostatu](https://appsso.eurostat.ec.europa.eu/nui/show.do?dataset=demo_r_mwk_ts&lang=en), a dla Polski również ze źródeł medialnych (TVN24, money.pl, BiqData). Dekompozycji sezonowej dokonałem za pomocą [procedury STL](https://otexts.com/fpp2/stl.html). Dla każdego kraju policzyłem w uproszczony sposób liczbę zgonów nadwyżkowych. Porównałem rzeczywistą liczbę zgonów z hipotetyczną liczbą zgonów, która powinna mieć miejsce gdyby znaczenie miał tylko trend długoterminowy oraz wpływ sezonowości danego tygodnia. Zainspirowałem się przy tym [analizą Mateusza Dadeja](https://twitter.com/mateusz_dadej/status/1325032311574974464).
+
+**Uwaga:** Dane spływają z różnymi opóźnieniami. Obserwacje za ostatnie tygodnie mogą być poddawane rewizjom, np. ze względu na fakt, że uwzględniają tylko część zgonów, które miały miejsce. Bardzo niska umieralność występująca w niektórych krajach na końcu szeregów jest więc najprawdopodobniej przykładem takich "niepełnych, wstępnych obserwacji" i w przyszłości będzie rewidowana w górę. Generalnie ostatnie obserwacje należy traktować jako wstępne i najmniej pewne. 
+
+**Uwaga 2:** Dane dla Polski za ostatnie tygodnie pochodzą z doniesień prasowych opracowywanych na podstawie danych Ministerstwa Cyfryzacji (MC). Dane Ministerstwa nieznacznie różnią się od danych z Eurostatu. MC raportuje wszystkie zgony na terenie kraju, a Eurostat tylko zgony mieszkańców Polski.
+
+**Autor: Kamil Pastor. Po więcej grafik, wykresów i wizualizacji zapraszam do śledzenia mojego [konta na Twitterze](https://twitter.com/pastor_kamil).**
+
+## Wykresy ogólne
+
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '100%'}
+
+przyg_wyk_tygodniowego_kraje(dt1)
+heatmapa_dostepnosc(dt1)
+
+```
+
+## Polska
+Dane tygodniowe dla Polski. Ostatnie dane dotyczą tygodnia nr `r ostatnia_data(wybrany_kraj = "Polska", dane = dt1)[[1]]` (`r ostatnia_data(wybrany_kraj = "Polska", dane = dt1)[[2]]`)
+
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Polska"
+data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt1)
+
+
+przyg_wyk_tygodniowego(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+przyg_wyk_dekompozycja(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+przyg_wyk_nadmiarowych_zgonow(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+przyg_wyk_tygodniowego_nadwyzkowa_smiertelnosc_kraj(dt1, wybrany_kraj)
+
+```
+
+## Austria
+
+Dane tygodniowe dla Austrii. Ostatnie dane dotyczą tygodnia nr `r ostatnia_data(wybrany_kraj = "Austria", dane = dt1)[[1]]` (`r ostatnia_data(wybrany_kraj = "Austria", dane = dt1)[[2]]`)
+
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Austria"
+data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt1)
+
+przyg_wyk_tygodniowego(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+przyg_wyk_dekompozycja(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+przyg_wyk_nadmiarowych_zgonow(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+przyg_wyk_tygodniowego_nadwyzkowa_smiertelnosc_kraj(dt1, wybrany_kraj)
+
+
+```
+
+
+## Belgia
+
+Dane tygodniowe dla Belgii. Ostatnie dane dotyczą tygodnia nr `r ostatnia_data(wybrany_kraj = "Belgia", dane = dt1)[[1]]` (`r ostatnia_data(wybrany_kraj = "Belgia", dane = dt1)[[2]]`)
+
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Belgia"
+data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt1)
+
+przyg_wyk_tygodniowego(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+przyg_wyk_dekompozycja(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+przyg_wyk_nadmiarowych_zgonow(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+przyg_wyk_tygodniowego_nadwyzkowa_smiertelnosc_kraj(dt1, wybrany_kraj)
+
+
+```
+
+## Bułgaria
+
+Dane tygodniowe dla Bułgarii. Ostatnie dane dotyczą tygodnia nr `r ostatnia_data(wybrany_kraj = "Bułgaria", dane = dt1)[[1]]` (`r ostatnia_data(wybrany_kraj = "Bułgaria", dane = dt1)[[2]]`)
+
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Bułgaria"
+data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt1)
+
+przyg_wyk_tygodniowego(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+przyg_wyk_dekompozycja(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+przyg_wyk_nadmiarowych_zgonow(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+przyg_wyk_tygodniowego_nadwyzkowa_smiertelnosc_kraj(dt1, wybrany_kraj)
+
+
+```
+
+## Chorwacja
+
+Dane tygodniowe dla Chorwacji. Ostatnie dane dotyczą tygodnia nr `r ostatnia_data(wybrany_kraj = "Chorwacja", dane = dt1)[[1]]` (`r ostatnia_data(wybrany_kraj = "Chorwacja", dane = dt1)[[2]]`)
+
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Chorwacja"
+data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt1)
+
+przyg_wyk_tygodniowego(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+przyg_wyk_dekompozycja(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+przyg_wyk_nadmiarowych_zgonow(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+przyg_wyk_tygodniowego_nadwyzkowa_smiertelnosc_kraj(dt1, wybrany_kraj)
+
+
+```
+
+## Cypr
+
+Dane tygodniowe dla Cypru. Ostatnie dane dotyczą tygodnia nr `r ostatnia_data(wybrany_kraj = "Cypr", dane = dt1)[[1]]` (`r ostatnia_data(wybrany_kraj = "Cypr", dane = dt1)[[2]]`)
+
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Cypr"
+data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt1)
+
+przyg_wyk_tygodniowego(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+przyg_wyk_dekompozycja(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+przyg_wyk_nadmiarowych_zgonow(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+przyg_wyk_tygodniowego_nadwyzkowa_smiertelnosc_kraj(dt1, wybrany_kraj)
+
+
+```
+
+## Czechy
+
+Dane tygodniowe dla Czech. Ostatnie dane dotyczą tygodnia nr `r ostatnia_data(wybrany_kraj = "Czechy", dane = dt1)[[1]]` (`r ostatnia_data(wybrany_kraj = "Czechy", dane = dt1)[[2]]`)
+
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Czechy"
+data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt1)
+
+przyg_wyk_tygodniowego(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+przyg_wyk_dekompozycja(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+przyg_wyk_nadmiarowych_zgonow(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+przyg_wyk_tygodniowego_nadwyzkowa_smiertelnosc_kraj(dt1, wybrany_kraj)
+
+
+```
+
+## Dania
+
+Dane tygodniowe dla Danii. Ostatnie dane dotyczą tygodnia nr `r ostatnia_data(wybrany_kraj = "Dania", dane = dt1)[[1]]` (`r ostatnia_data(wybrany_kraj = "Dania", dane = dt1)[[2]]`)
+
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Dania"
+data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt1)
+
+przyg_wyk_tygodniowego(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+przyg_wyk_dekompozycja(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+przyg_wyk_nadmiarowych_zgonow(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+przyg_wyk_tygodniowego_nadwyzkowa_smiertelnosc_kraj(dt1, wybrany_kraj)
+
+
+```
+
+## Estonia
+
+Dane tygodniowe dla Estonii. Ostatnie dane dotyczą tygodnia nr `r ostatnia_data(wybrany_kraj = "Estonia", dane = dt1)[[1]]` (`r ostatnia_data(wybrany_kraj = "Estonia", dane = dt1)[[2]]`)
+
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Estonia"
+data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt1)
+
+przyg_wyk_tygodniowego(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+przyg_wyk_dekompozycja(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+przyg_wyk_nadmiarowych_zgonow(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+przyg_wyk_tygodniowego_nadwyzkowa_smiertelnosc_kraj(dt1, wybrany_kraj)
+
+
+```
+
+## Finlandia
+
+Dane tygodniowe dla Finlandii. Ostatnie dane dotyczą tygodnia nr `r ostatnia_data(wybrany_kraj = "Finlandia", dane = dt1)[[1]]` (`r ostatnia_data(wybrany_kraj = "Finlandia", dane = dt1)[[2]]`)
+
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Finlandia"
+data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt1)
+
+przyg_wyk_tygodniowego(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+przyg_wyk_dekompozycja(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+przyg_wyk_nadmiarowych_zgonow(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+przyg_wyk_tygodniowego_nadwyzkowa_smiertelnosc_kraj(dt1, wybrany_kraj)
+
+
+```
+
+## Francja
+
+Dane tygodniowe dla Francji. Ostatnie dane dotyczą tygodnia nr `r ostatnia_data(wybrany_kraj = "Francja", dane = dt1)[[1]]` (`r ostatnia_data(wybrany_kraj = "Francja", dane = dt1)[[2]]`)
+
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Francja"
+data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt1)
+
+przyg_wyk_tygodniowego(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+przyg_wyk_dekompozycja(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+przyg_wyk_nadmiarowych_zgonow(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+przyg_wyk_tygodniowego_nadwyzkowa_smiertelnosc_kraj(dt1, wybrany_kraj)
+
+
+```
+
+## Grecja
+
+Dane tygodniowe dla Grecji. Ostatnie dane dotyczą tygodnia nr `r ostatnia_data(wybrany_kraj = "Grecja", dane = dt1)[[1]]` (`r ostatnia_data(wybrany_kraj = "Grecja", dane = dt1)[[2]]`)
+
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Grecja"
+data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt1)
+
+przyg_wyk_tygodniowego(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+przyg_wyk_dekompozycja(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+przyg_wyk_nadmiarowych_zgonow(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+przyg_wyk_tygodniowego_nadwyzkowa_smiertelnosc_kraj(dt1, wybrany_kraj)
+
+
+```
+
+## Hiszpania
+
+Dane tygodniowe dla Hiszpanii. Ostatnie dane dotyczą tygodnia nr `r ostatnia_data(wybrany_kraj = "Hiszpania", dane = dt1)[[1]]` (`r ostatnia_data(wybrany_kraj = "Hiszpania", dane = dt1)[[2]]`)
+
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Hiszpania"
+data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt1)
+
+przyg_wyk_tygodniowego(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+przyg_wyk_dekompozycja(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+przyg_wyk_nadmiarowych_zgonow(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+
+
+```
+
+## Holandia
+
+Dane tygodniowe dla Holandii. Ostatnie dane dotyczą tygodnia nr `r ostatnia_data(wybrany_kraj = "Holandia", dane = dt1)[[1]]` (`r ostatnia_data(wybrany_kraj = "Holandia", dane = dt1)[[2]]`)
+
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Holandia"
+data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt1)
+
+przyg_wyk_tygodniowego(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+przyg_wyk_dekompozycja(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+przyg_wyk_nadmiarowych_zgonow(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+przyg_wyk_tygodniowego_nadwyzkowa_smiertelnosc_kraj(dt1, wybrany_kraj)
+
+
+```
+
+## Islandia
+
+Dane tygodniowe dla Islandii. Ostatnie dane dotyczą tygodnia nr `r ostatnia_data(wybrany_kraj = "Islandia", dane = dt1)[[1]]` (`r ostatnia_data(wybrany_kraj = "Islandia", dane = dt1)[[2]]`)
+
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Islandia"
+data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt1)
+
+przyg_wyk_tygodniowego(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+przyg_wyk_dekompozycja(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+przyg_wyk_nadmiarowych_zgonow(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+przyg_wyk_tygodniowego_nadwyzkowa_smiertelnosc_kraj(dt1, wybrany_kraj)
+
+
+```
+
+## Litwa
+
+Dane tygodniowe dla Litwy. Ostatnie dane dotyczą tygodnia nr `r ostatnia_data(wybrany_kraj = "Litwa", dane = dt1)[[1]]` (`r ostatnia_data(wybrany_kraj = "Litwa", dane = dt1)[[2]]`)
+
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Litwa"
+data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt1)
+
+przyg_wyk_tygodniowego(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+przyg_wyk_dekompozycja(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+przyg_wyk_nadmiarowych_zgonow(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+przyg_wyk_tygodniowego_nadwyzkowa_smiertelnosc_kraj(dt1, wybrany_kraj)
+
+
+```
+
+## Luksemburg
+
+Dane tygodniowe dla Luksemburga. Ostatnie dane dotyczą tygodnia nr `r ostatnia_data(wybrany_kraj = "Luksemburg", dane = dt1)[[1]]` (`r ostatnia_data(wybrany_kraj = "Luksemburg", dane = dt1)[[2]]`)
+
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Luksemburg"
+data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt1)
+
+przyg_wyk_tygodniowego(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+przyg_wyk_dekompozycja(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+przyg_wyk_nadmiarowych_zgonow(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+przyg_wyk_tygodniowego_nadwyzkowa_smiertelnosc_kraj(dt1, wybrany_kraj)
+
+
+```
+
+## Łotwa
+
+Dane tygodniowe dla Łotwy. Ostatnie dane dotyczą tygodnia nr `r ostatnia_data(wybrany_kraj = "Łotwa", dane = dt1)[[1]]` (`r ostatnia_data(wybrany_kraj = "Łotwa", dane = dt1)[[2]]`)
+
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Łotwa"
+data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt1)
+
+przyg_wyk_tygodniowego(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+przyg_wyk_dekompozycja(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+przyg_wyk_nadmiarowych_zgonow(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+przyg_wyk_tygodniowego_nadwyzkowa_smiertelnosc_kraj(dt1, wybrany_kraj)
+
+
+```
+
+## Malta
+
+Dane tygodniowe dla Malty. Ostatnie dane dotyczą tygodnia nr `r ostatnia_data(wybrany_kraj = "Malta", dane = dt1)[[1]]` (`r ostatnia_data(wybrany_kraj = "Malta", dane = dt1)[[2]]`)
+
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Malta"
+data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt1)
+
+przyg_wyk_tygodniowego(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+przyg_wyk_dekompozycja(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+przyg_wyk_nadmiarowych_zgonow(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+przyg_wyk_tygodniowego_nadwyzkowa_smiertelnosc_kraj(dt1, wybrany_kraj)
+
+
+```
+
+## Niemcy
+
+Dane tygodniowe dla Niemiec. Ostatnie dane dotyczą tygodnia nr `r ostatnia_data(wybrany_kraj = "Niemcy", dane = dt1)[[1]]` (`r ostatnia_data(wybrany_kraj = "Niemcy", dane = dt1)[[2]]`)
+
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Niemcy"
+data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt1)
+
+przyg_wyk_tygodniowego(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+przyg_wyk_dekompozycja(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+przyg_wyk_nadmiarowych_zgonow(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+przyg_wyk_tygodniowego_nadwyzkowa_smiertelnosc_kraj(dt1, wybrany_kraj)
+
+
+```
+
+## Norwegia
+
+Dane tygodniowe dla Norwegii. Ostatnie dane dotyczą tygodnia nr `r ostatnia_data(wybrany_kraj = "Norwegia", dane = dt1)[[1]]` (`r ostatnia_data(wybrany_kraj = "Norwegia", dane = dt1)[[2]]`)
+
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Norwegia"
+data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt1)
+
+przyg_wyk_tygodniowego(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+przyg_wyk_dekompozycja(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+przyg_wyk_nadmiarowych_zgonow(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+przyg_wyk_tygodniowego_nadwyzkowa_smiertelnosc_kraj(dt1, wybrany_kraj)
+
+
+```
+
+## Portugalia
+
+Dane tygodniowe dla Portugalii. Ostatnie dane dotyczą tygodnia nr `r ostatnia_data(wybrany_kraj = "Portugalia", dane = dt1)[[1]]` (`r ostatnia_data(wybrany_kraj = "Portugalia", dane = dt1)[[2]]`)
+
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Portugalia"
+data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt1)
+
+przyg_wyk_tygodniowego(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+przyg_wyk_dekompozycja(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+przyg_wyk_nadmiarowych_zgonow(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+przyg_wyk_tygodniowego_nadwyzkowa_smiertelnosc_kraj(dt1, wybrany_kraj)
+
+
+```
+
+## Rumunia
+
+Dane tygodniowe dla Rumunii. Ostatnie dane dotyczą tygodnia nr `r ostatnia_data(wybrany_kraj = "Rumunia", dane = dt1)[[1]]` (`r ostatnia_data(wybrany_kraj = "Rumunia", dane = dt1)[[2]]`)
+
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Rumunia"
+data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt1)
+
+przyg_wyk_tygodniowego(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+przyg_wyk_dekompozycja(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+przyg_wyk_nadmiarowych_zgonow(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+przyg_wyk_tygodniowego_nadwyzkowa_smiertelnosc_kraj(dt1, wybrany_kraj)
+
+
+```
+
+## Serbia
+
+Dane tygodniowe dla Serbii. Ostatnie dane dotyczą tygodnia nr `r ostatnia_data(wybrany_kraj = "Serbia", dane = dt1)[[1]]` (`r ostatnia_data(wybrany_kraj = "Serbia", dane = dt1)[[2]]`)
+
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Serbia"
+data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt1)
+
+przyg_wyk_tygodniowego(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+przyg_wyk_dekompozycja(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+przyg_wyk_nadmiarowych_zgonow(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+przyg_wyk_tygodniowego_nadwyzkowa_smiertelnosc_kraj(dt1, wybrany_kraj)
+
+
+```
+
+## Słowacja
+
+Dane tygodniowe dla Słowacji. Ostatnie dane dotyczą tygodnia nr `r ostatnia_data(wybrany_kraj = "Słowacja", dane = dt1)[[1]]` (`r ostatnia_data(wybrany_kraj = "Słowacja", dane = dt1)[[2]]`)
+
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Słowacja"
+data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt1)
+
+przyg_wyk_tygodniowego(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+przyg_wyk_dekompozycja(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+przyg_wyk_nadmiarowych_zgonow(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+przyg_wyk_tygodniowego_nadwyzkowa_smiertelnosc_kraj(dt1, wybrany_kraj)
+
+
+```
+
+## Słowenia
+
+Dane tygodniowe dla Słowenii. Ostatnie dane dotyczą tygodnia nr `r ostatnia_data(wybrany_kraj = "Słowenia", dane = dt1)[[1]]` (`r ostatnia_data(wybrany_kraj = "Słowenia", dane = dt1)[[2]]`)
+
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Słowenia"
+data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt1)
+
+przyg_wyk_tygodniowego(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+przyg_wyk_dekompozycja(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+przyg_wyk_nadmiarowych_zgonow(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+przyg_wyk_tygodniowego_nadwyzkowa_smiertelnosc_kraj(dt1, wybrany_kraj)
+
+
+```
+
+## Szwajcaria
+
+Dane tygodniowe dla Szwajcarii. Ostatnie dane dotyczą tygodnia nr `r ostatnia_data(wybrany_kraj = "Szwajcaria", dane = dt1)[[1]]` (`r ostatnia_data(wybrany_kraj = "Szwajcaria", dane = dt1)[[2]]`)
+
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Finlandia"
+data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt1)
+
+przyg_wyk_tygodniowego(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+przyg_wyk_dekompozycja(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+przyg_wyk_nadmiarowych_zgonow(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+przyg_wyk_tygodniowego_nadwyzkowa_smiertelnosc_kraj(dt1, wybrany_kraj)
+
+
+```
+
+## Szwecja
+
+Dane tygodniowe dla Szwecji. Ostatnie dane dotyczą tygodnia nr `r ostatnia_data(wybrany_kraj = "Szwecja", dane = dt1)[[1]]` (`r ostatnia_data(wybrany_kraj = "Szwecja", dane = dt1)[[2]]`)
+
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Szwecja"
+data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt1)
+
+przyg_wyk_tygodniowego(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+przyg_wyk_dekompozycja(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+przyg_wyk_nadmiarowych_zgonow(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+przyg_wyk_tygodniowego_nadwyzkowa_smiertelnosc_kraj(dt1, wybrany_kraj)
+
+
+```
+
+## Węgry
+
+Dane tygodniowe dla Węgier. Ostatnie dane dotyczą tygodnia nr `r ostatnia_data(wybrany_kraj = "Węgry", dane = dt1)[[1]]` (`r ostatnia_data(wybrany_kraj = "Węgry", dane = dt1)[[2]]`)
+
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Węgry"
+data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt1)
+
+przyg_wyk_tygodniowego(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+przyg_wyk_dekompozycja(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+przyg_wyk_nadmiarowych_zgonow(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+przyg_wyk_tygodniowego_nadwyzkowa_smiertelnosc_kraj(dt1, wybrany_kraj)
+
+
+```
+
+## Wielka Brytania
+
+Dane tygodniowe dla Wielkiej Brytanii. Ostatnie dane dotyczą tygodnia nr `r ostatnia_data(wybrany_kraj = "Wielka Brytania", dane = dt1)[[1]]` (`r ostatnia_data(wybrany_kraj = "Wielka Brytania", dane = dt1)[[2]]`)
+
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Wielka Brytania"
+data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt1)
+
+przyg_wyk_tygodniowego(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+przyg_wyk_dekompozycja(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+przyg_wyk_nadmiarowych_zgonow(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+przyg_wyk_tygodniowego_nadwyzkowa_smiertelnosc_kraj(dt1, wybrany_kraj)
+
+
+```
+
+## Włochy
+
+Dane tygodniowe dla Włoch. Ostatnie dane dotyczą tygodnia nr `r ostatnia_data(wybrany_kraj = "Włochy", dane = dt1)[[1]]` (`r ostatnia_data(wybrany_kraj = "Włochy", dane = dt1)[[2]]`)
+
+``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
+wybrany_kraj <- "Włochy"
+data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt1)
+
+przyg_wyk_tygodniowego(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+przyg_wyk_dekompozycja(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+przyg_wyk_nadmiarowych_zgonow(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
+przyg_wyk_tygodniowego_nadwyzkowa_smiertelnosc_kraj(dt1, wybrany_kraj)
+
+
+```
+
+
+
