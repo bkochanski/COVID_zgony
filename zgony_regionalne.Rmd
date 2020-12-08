@@ -49,11 +49,11 @@ dt_NUTS_wojewodztwa <- readRDS("data/dt_NUTS_wojewodztwa.rds")
 ```
 
 # Wprowadzenie
-Na tej stronie będę regularnie aktualizował dane i analizy dotyczące śmiertelności w Polsce na poziomie regionów, czyli w województwach i podregionach. Podregiony są to zgrupowania statystyczne kilku powiatów. Niestety dane tygodniowe o zgonach nie są dostępne na poziomie powiatów i gmin.
+Na tej stronie będę regularnie aktualizował dane i analizy dotyczące umieralności w Polsce na poziomie regionów, czyli w województwach i podregionach. Podregiony są to zgrupowania statystyczne kilku powiatów. Niestety dane tygodniowe o zgonach nie są dostępne na poziomie powiatów i gmin.
 
-Dane pochodzą z [Eurostatu](https://appsso.eurostat.ec.europa.eu/nui/show.do?dataset= demo_r_mwk3_t&lang=en) i [GUSu](https://stat.gov.pl/obszary-tematyczne/ludnosc/ludnosc/zgony-wedlug-tygodni,39,2.html). Dekompozycji sezonowej dokonałem za pomocą [procedury STL](https://otexts.com/fpp2/stl.html). Dla każdego kraju policzyłem w uproszczony sposób liczbę zgonów nadwyżkowych. Porównałem rzeczywistą liczbę zgonów z hipotetyczną liczbą zgonów, która powinna mieć miejsce gdyby znaczenie miał tylko trend długoterminowy oraz wpływ sezonowości danego tygodnia. Zainspirowałem się przy tym [analizą Mateusza Dadeja](https://twitter.com/mateusz_dadej/status/1325032311574974464).
+Dane pochodzą z [Eurostatu](https://appsso.eurostat.ec.europa.eu/nui/show.do?dataset= demo_r_mwk3_t&lang=en) i [GUSu](https://stat.gov.pl/obszary-tematyczne/ludnosc/ludnosc/zgony-wedlug-tygodni,39,2.html). Dekompozycji sezonowej dokonałem za pomocą [procedury STL](https://otexts.com/fpp2/stl.html). Dane zaczynają się od 2000 roku. Dla każdego kraju policzyłem w uproszczony sposób liczbę zgonów nadwyżkowych. Porównałem rzeczywistą liczbę zgonów z hipotetyczną liczbą zgonów, która powinna mieć miejsce gdyby znaczenie miał tylko trend długoterminowy oraz wpływ sezonowości danego tygodnia. Zainspirowałem się przy tym [analizą Mateusza Dadeja](https://twitter.com/mateusz_dadej/status/1325032311574974464).
 
-**Uwaga:** Dane spływają z różnymi opóźnieniami. Obserwacje za ostatnie tygodnie mogą być poddawane rewizjom, np. ze względu na fakt, że uwzględniają tylko część zgonów, które miały miejsce. Bardzo niska śmiertelność występująca w niektórych regionach na końcu szeregów jest więc najprawdopodobniej przykładem takich "niepełnych, wstępnych obserwacji" i w przyszłości będzie rewidowana w górę. 
+**Uwaga:** Dane spływają z różnymi opóźnieniami. Obserwacje za ostatnie tygodnie mogą być poddawane rewizjom, np. ze względu na fakt, że uwzględniają tylko część zgonów, które miały miejsce. Obserwacje na końcu szeregu należy traktować jako niepełne, wstępne i w przyszłości mogą być rewidowane w górę. 
 
 Przygotowałem również analizę zgonów ogółem w ujęciu tygodniowym na poziomie poszczególnych krajów. Dostępna jest ona [pod tym linkiem](https://pastor-kamil.github.io/COVID_zgony/zgony-COVID.html)
 
@@ -1015,3 +1015,5 @@ wybrany_kraj <- "Szczeciński"
 
 ```
 
+
+[![Hits](https://hits.seeyoufarm.com/api/count/incr/badge.svg?url=https%3A%2F%2Fpastor-kamil.github.io%2Fzgony_regiony%2Fzgony_regionalne.html&count_bg=%23D10C0C&title_bg=%23555555&icon=plex.svg&icon_color=%23E7E7E7&title=views&edge_flat=false)](https://hits.seeyoufarm.com)

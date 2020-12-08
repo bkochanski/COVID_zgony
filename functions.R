@@ -78,7 +78,7 @@ dane_wykres <- cbind(dane_wykres, data_robocze2$data) %>%
 
 dane_max <- dane_wykres %>% 
   filter(data == max(data)) %>%
-  mutate(data = data + months(2))
+  mutate(data = data + months(3))
 
 ggplot(dane_wykres, aes(x=data)) +
   geom_line(aes(y = szacunek), color = "darkgrey") +
@@ -98,3 +98,144 @@ ggplot(dane_wykres, aes(x=data)) +
                   vjust= 0, color = "dimgrey", bg.colour= "white" ) 
 }
 
+
+
+przyg_wyk_tygodniowego_kraje <- function(dt1) {
+  
+  dane_pomocnicze <- dt1 %>%
+                      filter(sex == "T" & geo != "Cypr" & geo != "Andora" &
+                               geo != "Andora" & geo != "Albania" & geo != "Armenia" &
+                               geo != "Gruzja" & geo != "Lichtenstein" & geo != "Luksemburg" &
+                               geo !=  "Czarnogóra" & geo != "Serbia" &
+                               geo !=  "Litwa" & geo != "Łotwa" & geo != "Estonia" &
+                               
+                             data >= "2015-01-01" & data < "2020-01-01") %>%
+                      mutate(rok = factor(rok)) %>%
+                      group_by(geo, tydzien_liczba) %>%
+                      mutate(srednia_15_19 = mean(obsValue, na.rm = TRUE)) %>%
+                      ungroup()
+  
+  dane_pomocnicze2 <- dt1 %>%
+    filter(sex == "T" & geo != "Cypr" & geo != "Andora" &
+             geo != "Andora" & geo != "Albania" & geo != "Armenia" &
+             geo != "Gruzja" & geo != "Lichtenstein" & geo != "Luksemburg" &
+             geo !=  "Czarnogóra" & geo != "Serbia" &
+             geo !=  "Litwa" & geo != "Łotwa" & geo != "Estonia" &
+             
+             data >= "2020-01-01") %>%
+    mutate(rok = factor(rok)) %>%
+    mutate(srednia_15_19 = NA)
+
+                      
+  dane_wykres <- rbind(dane_pomocnicze, dane_pomocnicze2) %>%
+                  group_by(geo, tydzien_liczba) %>%
+                  mutate(p_indeks = round(obsValue / mean(srednia_15_19,na.rm = TRUE) * 100 - 100, 1)) %>%
+                  filter(data >= "2020-01-01") %>%
+                  ungroup()
+  
+  dane_max <- dane_wykres %>% 
+    filter(rok == 2020 ) %>%
+    filter(tydzien_liczba == max(tydzien_liczba)) %>%
+    mutate(tydzien_liczba = tydzien_liczba + 5)
+  
+  dane_szare <- dane_wykres %>%
+    mutate(geo2 = geo) %>%
+    select(!geo)
+    
+  ggplot(dane_wykres, aes(x = tydzien_liczba, y = p_indeks, group = geo)) +
+    geom_line(aes(x = tydzien_liczba, y = p_indeks, group = geo2), color = "grey",
+              data = dane_szare) +
+    geom_line(aes(x = tydzien_liczba, y = p_indeks, group = geo), 
+              data = dane_wykres, size = 1, color =  "darkblue") +
+    facet_wrap(~geo, ncol = 5) +
+    scale_y_continuous(labels = scales::number, limits = c(-50, 170)) +
+    labs(x = "Tygodnie roku", y = "Nadwyżkowa umieralność w procentach",
+         title = paste0("Procentowa nadwyżkowa umieralność w ujęciu tygodniowym"),
+         subtitle = "Dane przedstawiają o ile procent więcej osób umarło w danym kraju w danym tygodniu \nwzględem średniej umieralności w danym tygodniu w ostatnich pięciu latach (2015-2019).\nDane dla krajów różnią się opóźnieniem w raportowaniu danych.",
+         caption = "Autor: Kamil Pastor na podstawie danych Eurostatu") +
+    theme_minimal() +
+    theme(axis.text = element_text(size = 7),
+          axis.title = element_text(size = 8),
+          strip.text = element_text(face = "bold", size = 8),
+          plot.title = element_text(),
+          plot.subtitle = element_text(size = 8)) +
+   geom_hline(yintercept = 0, color = "maroon")
+  
+  
+}
+
+
+przyg_wyk_tygodniowego_nadwyzkowa_smiertelnosc_kraj <- function(dt1, wybrany_kraj) {
+  
+  dane_pomocnicze <- dt1 %>%
+    filter(sex == "T" & geo == wybrany_kraj &
+             data >= "2015-01-01" & data < "2020-01-01") %>%
+    mutate(rok = factor(rok)) %>%
+    group_by(geo, tydzien_liczba) %>%
+    mutate(srednia_15_19 = mean(obsValue, na.rm = TRUE)) %>%
+    ungroup()
+  
+  dane_pomocnicze2 <- dt1 %>%
+    filter(sex == "T" & geo == wybrany_kraj &
+             data >= "2020-01-01") %>%
+    mutate(rok = factor(rok)) %>%
+    mutate(srednia_15_19 = NA) %>%
+    filter(!is.na(obsValue))
+   
+  
+  
+  dane_wykres <- rbind(dane_pomocnicze, dane_pomocnicze2) %>%
+    group_by(geo, tydzien_liczba) %>%
+    mutate(p_indeks = round(obsValue / mean(srednia_15_19,na.rm = TRUE) * 100 - 100, 1)) %>%
+    filter(data >= "2020-01-01") %>%
+    ungroup()
+  
+  dane_max <- dane_wykres %>% 
+    filter(rok == 2020 ) %>%
+    filter(tydzien_liczba == max(tydzien_liczba)) %>%
+    mutate(tydzien_liczba = tydzien_liczba + 4)
+  
+  
+  ggplot(dane_wykres, aes(x = tydzien_liczba, y = p_indeks)) +
+    geom_line(aes(x = tydzien_liczba, y = p_indeks, group = geo), 
+              data = dane_wykres, size = 1.1, color =  "darkblue") +
+    scale_y_continuous(labels = scales::number, limits = c(-50, 170)) +
+    labs(x = "Tygodnie roku", y = "Nadwyżkowa umieralność w procentach",
+         title = paste0(wybrany_kraj," - Procentowa nadwyżkowa umieralność w ujęciu tygodniowym"),
+         subtitle = "Dane przedstawiają o ile procent więcej osób umarło w danym tygodniu względem średniej \numieralności w danym tygodniu w ostatnich pięciu latach (2015-2019).",
+         caption = "Autor: Kamil Pastor na podstawie danych Eurostatu") +
+    theme_minimal() +
+    theme(axis.text = element_text(),
+          strip.text = element_text(face = "bold"),
+          plot.title = element_text()) +
+    geom_hline(yintercept = 0, color = "maroon") +
+    geom_shadowtext(data = dane_max, aes(x = tydzien_liczba, y = p_indeks, label = paste0(round(p_indeks,1)," %")),
+                    vjust= 0, size = 4, color = "darkblue", bg.colour="white" ) 
+  
+}
+
+heatmapa_dostepnosc <- function(dt1) {
+  
+  dane_wykres <- dt1 %>%
+                 filter(sex == "T" & data >= "2020-01-01" & geo != "Andora") %>%
+                 mutate(dostepnosc = if_else(is.na(obsValue),0,1))
+  
+  ggplot(dane_wykres, aes(x = tydzien_liczba, y = geo, fill = dostepnosc)) +
+    geom_tile() +
+    scale_y_discrete(limits = rev) +
+    scale_fill_gradientn(colours=c("lightgrey", "darkblue"),
+                         values=rescale(c(0,1)),
+                         guide="colorbar") +
+    labs(x = "Tygodnie roku", y = "",
+         title = paste0("Dostępność danych o zgonach w 2020 roku wg tygodni"),
+         subtitle = "Ciemnoniebieskim kolorem zaznaczo te tygodnie, dla których są dostępne dane o zgonach",
+         caption = "Autor: Kamil Pastor na podstawie danych Eurostatu") +
+    theme_minimal() +
+    theme(axis.text = element_text(),
+          strip.text = element_text(face = "bold"),
+          plot.title = element_text(),
+          plot.subtitle = element_text(size = 8),
+          legend.position = "none") 
+  
+  
+}
