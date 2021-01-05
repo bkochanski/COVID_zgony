@@ -473,7 +473,7 @@ przyg_wyk_tygodniowego_nadwyzkowa_smiertelnosc_kraj(dt1, wybrany_kraj)
 Dane tygodniowe dla Szwajcarii. Ostatnie dane dotyczą tygodnia nr `r ostatnia_data(wybrany_kraj = "Szwajcaria", dane = dt1)[[1]]` (`r ostatnia_data(wybrany_kraj = "Szwajcaria", dane = dt1)[[2]]`)
 
 ``` {r, echo = FALSE, message = FALSE, warning = FALSE, error = FALSE, fig.show = "hold", out.width = '50%'}
-wybrany_kraj <- "Finlandia"
+wybrany_kraj <- "Szwajcaria"
 data_robocze <- przyg_danych(wybrany_kraj = wybrany_kraj, dane = dt1)
 
 przyg_wyk_tygodniowego(data_robocze = data_robocze, wybrany_kraj = wybrany_kraj)
